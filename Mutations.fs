@@ -44,20 +44,22 @@ type MutationPoint = {
     Range: Range
     NodeKind: string
     TokenText: string option
+    FunctionName: string option
 }
 
 
 
 module MutationPoint =
-    let create (filePath: string) (nodeKind: string) (range: Range) (tokenText: string option) : MutationPoint =
+    let create (filePath: string) (nodeKind: string) (range: Range) (tokenText: string option) (functionName: string option) : MutationPoint =
         {
             FilePath = filePath
             Range = range
             NodeKind = nodeKind
             TokenText = tokenText
+            FunctionName = functionName
         }
-    let collect (filePath: string) (nodeKind: string) (range: Range) (tokenText: string option) (acc: MutationPoint list) : MutationPoint list =
-        create filePath nodeKind range tokenText :: acc
+    let collect (filePath: string) (nodeKind: string) (range: Range) (tokenText: string option) (functionName: string option) (acc: MutationPoint list) : MutationPoint list =
+        create filePath nodeKind range tokenText functionName :: acc
 
 module Mutation =
     // Convert an FCS Range (1-based lines and 0-based columns in each line) to
