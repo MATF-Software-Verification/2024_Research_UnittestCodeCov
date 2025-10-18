@@ -44,11 +44,17 @@ let private getTokenFromSingleLineRange (source: ISourceText) (r: range) : strin
         else None
     else None
 
+let private getFunctionName (pat: SynPat) : string option =
+    match pat with
+    | SynPat.Named (SynIdent(id, _), _, _, _) -> Some id.idText
+    | SynPat.LongIdent (SynLongIdent([id], _, _), _, _, _, _, _) -> Some id.idText
+    | _ -> None
 
 
-let rec walkSynExpr (filePath: string) (source: ISourceText) (expr: SynExpr) : MutationPoint list =
+
+let rec walkSynExpr (filePath: string) (source: ISourceText) (functionName: string option) (expr: SynExpr) : MutationPoint list =
     let mkPoint nodeKind (m: range) tokenText acc =
-        MutationPoint.collect filePath nodeKind m tokenText acc
+        MutationPoint.collect filePath nodeKind m tokenText functionName acc
 
     match expr with
     | SynExpr.App (_, true, func, arg, m) ->
@@ -59,15 +65,15 @@ let rec walkSynExpr (filePath: string) (source: ISourceText) (expr: SynExpr) : M
             |> Option.filter (fun s -> s <> "")
         let opRange = tryGetOperatorRange func |> Option.defaultValue m
         let here = mkPoint "Op.Infix" opRange opToken []
-        let pf = walkSynExpr filePath source func
-        let pa = walkSynExpr filePath source arg
+        let pf = walkSynExpr filePath source functionName func
+        let pa = walkSynExpr filePath source functionName arg
         here @ pf @ pa
     | SynExpr.App (_, _, func, arg, _) ->
-        let pf = walkSynExpr filePath source func
-        let pa = walkSynExpr filePath source arg
+        let pf = walkSynExpr filePath source functionName func
+        let pa = walkSynExpr filePath source functionName arg
         pf @ pa
     | SynExpr.Lambda (_, _, _, body, _, _, _) ->
-        walkSynExpr filePath source body
+        walkSynExpr filePath source functionName body
     | SynExpr.Const (c, m) ->
         match c with
         | SynConst.Bool b -> mkPoint "Const.Bool" m (Some (if b then "true" else "false")) []
@@ -96,7 +102,8 @@ let walkFile (tree: ParsedInput) : MutationPoint list =
                         |> List.collect (fun binding ->
                             match binding with
                             | SynBinding(_, _, _, _, _, _, _, _pat, _, expr, _, _, _) ->
-                                walkSynExpr filePath source expr)
+                                let functionName = getFunctionName _pat
+                                walkSynExpr filePath source functionName expr)
                     | _ -> []))
         points
     | _ -> 
