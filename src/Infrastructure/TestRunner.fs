@@ -3,14 +3,12 @@ module FMutant.Infrastructure.TestRunner
 open System.Diagnostics
 open System.Text
 
-/// Result of a compilation or test execution
 type ProcessResult =
     { ExitCode: int
       Output: string
       Error: string
       TimedOut: bool }
 
-/// Execute a process and capture its output
 let private executeProcess (fileName: string) (arguments: string) (timeoutMs: int option) : ProcessResult =
     let psi = ProcessStartInfo()
     psi.FileName <- fileName
