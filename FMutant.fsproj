@@ -14,7 +14,13 @@
         <Compile Include="src/Core/MutationOperators.fs" />
         <Compile Include="src/Core/AstWalker.fs" />
 
+        <!-- Infrastructure Layer: External interactions -->
+        <Compile Include="src/Infrastructure/FileOperations.fs" />
+        <Compile Include="src/Infrastructure/TestRunner.fs" />
+        <Compile Include="src/Infrastructure/MutationExecutor.fs" />
 
+        <!-- Reporting Layer: Output and statistics -->
+        <Compile Include="src/Reporting/Reporter.fs" />
 
         <!-- Application: Test subjects and entry point -->
         <Compile Include="Sample.fs" />
