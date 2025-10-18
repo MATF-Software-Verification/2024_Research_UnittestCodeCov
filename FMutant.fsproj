@@ -6,12 +6,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Mutations.fs" />
+        <!-- Domain Layer: Pure types, no dependencies -->
+        <Compile Include="src/Domain/Types.fs" />
 
-        <Compile Include="AstWalker.fs" />
+        <!-- Core Layer: Business logic -->
+        <Compile Include="src/Core/SourceAnalysis.fs" />
+        <Compile Include="src/Core/MutationOperators.fs" />
+        <Compile Include="src/Core/AstWalker.fs" />
+
+
+
+
         <Compile Include="Sample.fs" />
-        <Compile Include="SampleTests.fs" />
-        <Compile Include="Program.fs" />
+
+
         <Content Include="notes.md" />
     </ItemGroup>
 
