@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -16,9 +16,10 @@
 
 
 
-
+        <!-- Application: Test subjects and entry point -->
         <Compile Include="Sample.fs" />
-
+        <Compile Include="SampleTests.fs" />
+        <Compile Include="Program.fs" />
 
         <Content Include="notes.md" />
     </ItemGroup>
