@@ -1,5 +1,7 @@
 ﻿module FMutant.Program
 
+open System
+open System.IO
 open FMutant.Domain
 open FMutant.Core.AstWalker
 open FMutant.Core.MutationOperators
@@ -13,10 +15,32 @@ type MutationTestResult =
     | FSharpCoreError of string
     | UnexpectedError of exn
 
-let parseArguments (argv: string array) : Result<string * string, MutationTestResult> =
+let parseArguments (argv: string array) : Result<string, MutationTestResult> =
     match argv with
-    | [| filePath; functionName |] -> Ok(filePath, functionName)
+    | [| filePath |] -> Ok(filePath)
     | _ -> Error InvalidArguments
+
+let getOutputFunctionList filePath =
+    try
+        let tree, _ = parseFile filePath
+        let points = walkFile tree
+        points
+        |> List.choose (fun p -> p.FunctionName)
+        |> List.distinct
+    with
+    | ex ->
+        eprintfn "Error reading file '%s': %s" filePath ex.Message
+        []
+
+let rec chooseOutput (outputs: string list) =
+    outputs
+    |> List.iteri (fun i o -> printfn "%d) %s" (i + 1) o)
+    printf "\nSelect output: "
+    match Console.ReadLine() |> Int32.TryParse with
+    | true, n when n > 0 && n <= outputs.Length -> outputs.[n - 1]
+    | _ ->
+        printfn "Invalid selection. Try again.\n"
+        chooseOutput outputs
 
 let discoverMutationPoints filePath functionName =
     printfn "Phase 1: Parsing and discovering mutation points..."
@@ -87,6 +111,10 @@ let handleResult =
 [<EntryPoint>]
 let main argv =
     parseArguments argv
-    |> Result.map (fun (filePath, functionName) -> runMutationTesting filePath functionName)
+    |> Result.map (fun filePath ->
+        let outputs = getOutputFunctionList filePath
+        let chosen = chooseOutput outputs
+        runMutationTesting filePath chosen
+    )
     |> Result.defaultValue InvalidArguments
     |> handleResult
