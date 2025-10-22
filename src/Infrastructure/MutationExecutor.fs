@@ -43,6 +43,20 @@ let executeSingleMutation (mutation: Mutation) (timeoutMs: int) : Mutation =
             Notes = Some $"Error during execution: {ex.Message}" }
 
 
+
+let asyncMap = fun index mutation (mutationsParam: Mutation list) timeoutMs -> async {
+    printfn $"[{index + 1}/{mutationsParam.Length}] Testing mutation {mutation.Id} ({mutation.Operator})..."
+    let result = executeSingleMutation mutation timeoutMs
+    match result.Status with
+    | Some Killed -> printfn "  ✓ Killed"
+    | Some Survived -> printfn "  ✗ Survived"
+    | Some CompileError -> printfn "  ⚠ Compile Error"
+    | Some Timeout -> printfn "  ⏱ Timeout"
+    | Some Pending -> printfn "  • Pending"
+    | None -> printfn "  ? Unknown"
+    result
+   }
+
 let executeMutations (mutations: Mutation list) (timeoutMs: int) : Mutation list =
     mutations
     |> List.toArray
