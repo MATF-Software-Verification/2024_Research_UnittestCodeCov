@@ -46,7 +46,7 @@ let executeSingleMutation (mutation: Mutation) (timeoutMs: int) : Mutation =
 let executeMutations (mutations: Mutation list) (timeoutMs: int) : Mutation list =
     mutations
     |> List.toArray
-    |> Array.Parallel.mapi (fun index mutation ->
+    |> Array.mapi (fun index mutation ->
         printfn $"[{index + 1}/{mutations.Length}] Testing mutation {mutation.Id} ({mutation.Operator})..."
 
         let result = executeSingleMutation mutation timeoutMs
