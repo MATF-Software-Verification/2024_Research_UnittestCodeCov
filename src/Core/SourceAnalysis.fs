@@ -5,17 +5,24 @@ open FSharp.Compiler.Text
 open FMutant.Domain
 
 let rangeToIndices (source: ISourceText) (r: Range) : int * int =
+    // Use the actual source text to calculate positions correctly
+    // This avoids issues with line ending counting
+    let fullText = source.ToString()
+    let lines = fullText.Split([|'\n'|])
+
     let startLine = r.StartLine - 1
     let endLine = r.EndLine - 1
 
     if startLine < 0 || endLine < 0 then
         invalidArg "r" "Range has invalid line numbers"
 
-    let mutable offset = 0
+    if startLine >= lines.Length || endLine >= lines.Length then
+        invalidArg "r" $"Range line numbers out of bounds: startLine={startLine}, endLine={endLine}, lineCount={lines.Length}"
 
+    // Calculate offset by summing lengths of previous lines + newline chars
+    let mutable offset = 0
     for i in 0 .. startLine - 1 do
-        let line = source.GetLineString i
-        offset <- offset + line.Length + 1
+        offset <- offset + lines.[i].Length + 1  // +1 for '\n'
 
     let startIndex = offset + r.StartColumn
 
@@ -23,15 +30,11 @@ let rangeToIndices (source: ISourceText) (r: Range) : int * int =
         let endIndex = startIndex + (r.EndColumn - r.StartColumn)
         startIndex, endIndex
     else
-        let startLineLen =
-            source.GetLineString startLine
-            |> fun s -> s.Length
-
+        let startLineLen = lines.[startLine].Length
         offset <- offset + (startLineLen - r.StartColumn) + 1
 
         for i in startLine + 1 .. endLine - 1 do
-            let line = source.GetLineString i
-            offset <- offset + line.Length + 1
+            offset <- offset + lines.[i].Length + 1
 
         offset <- offset + r.EndColumn
         let endIndex = offset

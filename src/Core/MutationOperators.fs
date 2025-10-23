@@ -103,6 +103,11 @@ let createCandidates (idGen: unit -> Id) (source: ISourceText) (point: MutationP
             with
             | _ -> ""
 
+        // DEBUG: Print what we're trying to mutate
+        let debugMsg = $"DEBUG PARSE: NodeKind={point.NodeKind}, Range={point.Range}, Indices={startIdx}-{endIdx}, Original='{original}', Token={point.TokenText}"
+        printfn "%s" debugMsg
+        System.IO.File.AppendAllText("mutation_debug.log", debugMsg + "\n")
+
         let token =
             match point.TokenText with
             | Some t when t.Trim() <> "" -> Some(t.Trim())

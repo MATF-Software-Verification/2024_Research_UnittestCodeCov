@@ -60,10 +60,24 @@ let private executeProcess (fileName: string) (arguments: string) (timeoutMs: in
           TimedOut = false }
 
 let compileProject () : ProcessResult =
-    executeProcess "dotnet" "build --no-restore --verbosity quiet" None
+    // Build to a separate output directory to avoid locking conflicts with the running process
+    // The current FMutant.exe has bin/Debug loaded, so we build to bin/MutationTest instead
+    let result = executeProcess "dotnet" "build --no-incremental --verbosity quiet /p:WarningLevel=0 /p:UseAppHost=false /p:OutputPath=bin/MutationTest/" None
+
+    // Filter out MSB3026/MSB3027 warnings from output to reduce console noise
+    let cleanOutput =
+        result.Output.Split('\n')
+        |> Array.filter (fun line ->
+            not (line.Contains("MSB3026") || line.Contains("MSB3027") ||
+                 line.Contains("Beginning retry") || line.Contains("Exceeded retry count")))
+        |> String.concat "\n"
+
+    { result with Output = cleanOutput }
 
 let runTests (timeoutMs: int) : ProcessResult =
-    executeProcess "dotnet" "test --no-build --verbosity quiet" (Some timeoutMs)
+    // Run tests using the DLL from the mutation test output directory
+    // We can't use --no-build because the main bin/Debug is locked, so we rebuild to MutationTest
+    executeProcess "dotnet" "test --no-build --verbosity quiet /p:OutputPath=bin/MutationTest/" (Some timeoutMs)
 
 let isCompilationSuccess (result: ProcessResult) : bool = result.ExitCode = 0
 

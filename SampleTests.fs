@@ -80,3 +80,17 @@ type SampleTests() =
         Assert.That(multiplication -2 -3, Is.EqualTo(6))
         Assert.That(multiplication 5 -3, Is.EqualTo(-15))
         Assert.That(multiplication -4 3, Is.EqualTo(-12))
+
+
+    [<Test>]
+    member _.``riskyDivision - divides and adds``() =
+        Assert.That(riskyDivision 10, Is.EqualTo(10))
+        Assert.That(riskyDivision 5, Is.EqualTo(5))
+
+    [<Test>]
+    member _.``survivorFunction - returns 0 for input 0``() =
+        Assert.That(survivorFunction 1, Is.EqualTo(1))
+
+    [<Test>]
+    member _.``superWeakFunction - returns 0 for input 0``() =
+        Assert.That(superWeakFunction 0, Is.EqualTo(0))
