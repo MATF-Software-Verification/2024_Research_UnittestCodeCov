@@ -89,27 +89,90 @@ let rec walkSynExpr
     | SynExpr.Ident _ -> []
     | _ -> []
 
+
+// walkFile: ParsedInput -> MutationPoint list
+// Sample.fs
+//   ↓
+// ParsedInput.ImplFile
+//   ↓
+// ParsedImplFileInput (filePath, modules)
+//   ↓
+// modules → List of SynModuleOrNamespace
+//   ↓
+// For each module:
+//   decls → [SynModuleDecl.Let, SynModuleDecl.Let, ...]
+//   ↓
+//   Filter only SynModuleDecl.Let (function definitions)
+//     ↓
+//     For each Let:
+//       bindings → [SynBinding for "add", SynBinding for "isLessThanConst", ...]
+//       ↓
+//       For each binding:
+//         Extract functionName from pattern → "add"
+//         Extract expr (function body) → a + b
+//         ↓
+//         walkSynExpr "Sample.fs" source (Some "add") (a + b)
+
 let walkFile (tree: ParsedInput) : MutationPoint list =
     match tree with
-    | ParsedInput.ImplFile implFile ->
-        let (ParsedImplFileInput (filePath, _, _, _, modules, _, _, _)) = implFile
+    | ParsedInput.ImplFile implFile -> // BECAUSE F# FILES CAN BE .fs (IMPLEMENTATION) OR .fsi (SIGNATURE)
+        let (ParsedImplFileInput (filePath, _, _, _, modules, _, _, _)) = implFile //FROM HERE WE ONLY CARE ABOUT IMPLEMENTATION FILES AND WE DESTRUCTURE TO GET THE MODULES AND FILE PATH
         let source = SourceText.ofString (File.ReadAllText filePath)
 
-        let points =
+        let points = //TRAVERSE THROUGH MODULES
             modules
             |> List.collect (fun (SynModuleOrNamespace (_, _, _, decls, _, _, _, _, _)) ->
-                decls
+                decls //TRAVERSE THROUGH TOP LEVEL DECLARATIONS TO GET TO FUNCTION BINDINGS
+                // decls = [
+                //     SynModuleDecl.Let (for "add")
+                //     SynModuleDecl.Let (for "isLessThanConst")
+                //     ...
+                // ]
+
                 |> List.collect (function
                     | SynModuleDecl.Let (_, bindings, _) ->
-                        bindings
+                        bindings //WE ONLY CARE ABOUT LET BINDINGS (FUNCTIONS) HERE WE COULD HAVE TYPES OPEN STATEMENTS ETC.
                         |> List.collect (fun binding ->
                             match binding with
                             | SynBinding (_, _, _, _, _, _, _, _pat, _, expr, _, _, _) ->
+                                // SynBinding (
+                                //     accessibility,  // public/private
+                                //     bindingKind,    // Normal/DoBinding
+                                //     mustInline,     // inline keyword?
+                                //     isMutable,      // mutable keyword?
+                                //     attributes,     // [<Attribute>]
+                                //     xmlDoc,         // /// documentation
+                                //     valData,        // type info
+                                //     _pat,           // ← Pattern: "add", "isLessThanConst", etc.
+                                //     returnInfo,     // return type annotation
+                                //     expr,           // ← THE FUNCTION BODY (what we walk!)
+                                //     ...
+                                // )
+
                                 let functionName = getFunctionName _pat
-                                walkSynExpr filePath source functionName expr)
+                                walkSynExpr filePath source functionName expr) //WE PROCESS THE FUNCTION BODY EXPRESSION TO FIND MUTATION POINTS
                     | _ -> []))
 
         points
     | _ ->
         printfn "Not an implementation file."
         []
+
+
+
+// walkFile Flow:
+// ├─ ParsedInput.ImplFile
+// │   └─ modules: [SynModuleOrNamespace]
+// │       └─ decls: [SynModuleDecl.Let, SynModuleDecl.Let, ...]
+// │           └─ bindings: [SynBinding for each function]
+// │               ├─ Extract functionName from pattern
+// │               └─ walkSynExpr on function body
+// │
+// walkSynExpr Flow (Recursive):
+// ├─ SynExpr.App (infix) → Create MutationPoint for operator
+// │   ├─ Recurse on func
+// │   └─ Recurse on arg
+// ├─ SynExpr.Const → Create MutationPoint for constant
+// ├─ SynExpr.Lambda → Recurse on body
+// ├─ SynExpr.Ident → Return []
+// └─ _ → Return []

@@ -24,6 +24,7 @@ let getOutputFunctionList filePath =
     try
         let tree, _ = parseFile filePath
         let points = walkFile tree
+
         points
         |> List.choose (fun p -> p.FunctionName)
         |> List.distinct
@@ -35,7 +36,9 @@ let getOutputFunctionList filePath =
 let rec chooseOutput (outputs: string list) =
     outputs
     |> List.iteri (fun i o -> printfn "%d) %s" (i + 1) o)
+
     printf "\nSelect output: "
+
     match Console.ReadLine() |> Int32.TryParse with
     | true, n when n > 0 && n <= outputs.Length -> outputs.[n - 1]
     | _ ->
@@ -68,7 +71,7 @@ let generateCandidates (points, source) =
 let executeMutationsAndReport candidates =
     printfn "Phase 3: Executing mutations (this may take a while)..."
     printfn "==========================================\n"
-    let timeoutMs = 30000 // 30 seconds per mutation
+    let timeoutMs = 30000
     let results = executeMutations candidates timeoutMs
     printReport results
     Success
@@ -114,7 +117,6 @@ let main argv =
     |> Result.map (fun filePath ->
         let outputs = getOutputFunctionList filePath
         let chosen = chooseOutput outputs
-        runMutationTesting filePath chosen
-    )
+        runMutationTesting filePath chosen)
     |> Result.defaultValue InvalidArguments
     |> handleResult
